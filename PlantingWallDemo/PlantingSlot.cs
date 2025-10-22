@@ -64,7 +64,9 @@ namespace PlantingWallDemo
 
         public bool MatchesQRCode(string qrCode)
         {
-            return _orderData != null && _orderData.QRCode.Equals(qrCode, StringComparison.OrdinalIgnoreCase);
+            return _orderData != null && 
+                   (_orderData.QRCode.Equals(qrCode, StringComparison.OrdinalIgnoreCase) ||
+                    _orderData.OrderId.Equals(qrCode, StringComparison.OrdinalIgnoreCase));
         }
     }
 }
