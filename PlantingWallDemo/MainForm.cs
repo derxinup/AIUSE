@@ -171,19 +171,33 @@ namespace PlantingWallDemo
             {
                 for (int col = 0; col < COLUMNS; col++)
                 {
-                    _slots[row, col].ClearOrderData();
+                    _slots[row, col].ClearAllOrders();
                 }
             }
             
-            // Load orders into slots (up to 12 orders for 3x4 grid)
+            // Distribute orders across all slots evenly
+            int totalSlots = ROWS * COLUMNS;
             int orderIndex = 0;
+            
+            // First, add one order to each slot if available
             for (int row = 0; row < ROWS && orderIndex < _orders.Count; row++)
             {
                 for (int col = 0; col < COLUMNS && orderIndex < _orders.Count; col++)
                 {
-                    _slots[row, col].SetOrderData(_orders[orderIndex]);
+                    _slots[row, col].AddOrder(_orders[orderIndex]);
                     orderIndex++;
                 }
+            }
+            
+            // Then distribute remaining orders cyclically
+            int slotIndex = 0;
+            while (orderIndex < _orders.Count)
+            {
+                int row = slotIndex / COLUMNS;
+                int col = slotIndex % COLUMNS;
+                _slots[row, col].AddOrder(_orders[orderIndex]);
+                orderIndex++;
+                slotIndex = (slotIndex + 1) % totalSlots;
             }
         }
 
@@ -234,11 +248,11 @@ namespace PlantingWallDemo
                 string announcement = $"{matchedSlot.Row + 1}行{matchedSlot.Column + 1}列";
                 PlayAnnouncement(announcement);
                 
-                // Clear the slot after a short delay
+                // Remove the specific order after a short delay
                 var timer = new System.Windows.Forms.Timer { Interval = 2000 };
                 timer.Tick += (s, e) =>
                 {
-                    matchedSlot.ClearOrderData();
+                    matchedSlot.RemoveOrder(qrCode);
                     timer.Stop();
                     timer.Dispose();
                 };

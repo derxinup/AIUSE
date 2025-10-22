@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.Drawing;
+using System.Linq;
 using System.Windows.Forms;
 
 namespace PlantingWallDemo
@@ -10,18 +12,19 @@ namespace PlantingWallDemo
     public class PlantingSlot : Panel
     {
         private Label _contentLabel = null!;
-        private OrderData? _orderData;
+        private List<OrderData> _orders;
         private int _row;
         private int _column;
         
         public int Row => _row;
         public int Column => _column;
-        public OrderData? OrderData => _orderData;
+        public List<OrderData> Orders => _orders;
 
         public PlantingSlot(int row, int column)
         {
             _row = row;
             _column = column;
+            _orders = new List<OrderData>();
             InitializeComponent();
         }
 
@@ -43,18 +46,59 @@ namespace PlantingWallDemo
             Controls.Add(_contentLabel);
         }
 
-        public void SetOrderData(OrderData orderData)
+        public void AddOrder(OrderData orderData)
         {
-            _orderData = orderData;
-            _contentLabel.Text = orderData.ToString();
-            BackColor = Color.LightBlue;
+            _orders.Add(orderData);
+            UpdateDisplay();
         }
 
+        public void RemoveOrder(string orderIdOrQrCode)
+        {
+            _orders.RemoveAll(order => 
+                order.OrderId.Equals(orderIdOrQrCode, StringComparison.OrdinalIgnoreCase) ||
+                order.QRCode.Equals(orderIdOrQrCode, StringComparison.OrdinalIgnoreCase));
+            UpdateDisplay();
+        }
+
+        public void ClearAllOrders()
+        {
+            _orders.Clear();
+            UpdateDisplay();
+        }
+
+        private void UpdateDisplay()
+        {
+            if (_orders.Count == 0)
+            {
+                _contentLabel.Text = $"格口 {_row + 1}-{_column + 1}";
+                BackColor = Color.LightGray;
+            }
+            else if (_orders.Count == 1)
+            {
+                // Single order: show full details
+                _contentLabel.Text = _orders[0].ToString();
+                BackColor = Color.LightBlue;
+            }
+            else
+            {
+                // Multiple orders: show only order numbers
+                var orderNumbers = string.Join("\n", _orders.Select(o => o.OrderId));
+                _contentLabel.Text = $"格口 {_row + 1}-{_column + 1}\n{orderNumbers}";
+                BackColor = Color.LightBlue;
+            }
+        }
+
+        [Obsolete("Use AddOrder instead")]
+        public void SetOrderData(OrderData orderData)
+        {
+            ClearAllOrders();
+            AddOrder(orderData);
+        }
+
+        [Obsolete("Use ClearAllOrders instead")]
         public void ClearOrderData()
         {
-            _orderData = null;
-            _contentLabel.Text = $"格口 {_row + 1}-{_column + 1}";
-            BackColor = Color.LightGray;
+            ClearAllOrders();
         }
 
         public void Highlight()
@@ -64,9 +108,9 @@ namespace PlantingWallDemo
 
         public bool MatchesQRCode(string qrCode)
         {
-            return _orderData != null && 
-                   (_orderData.QRCode.Equals(qrCode, StringComparison.OrdinalIgnoreCase) ||
-                    _orderData.OrderId.Equals(qrCode, StringComparison.OrdinalIgnoreCase));
+            return _orders.Any(order => 
+                order.QRCode.Equals(qrCode, StringComparison.OrdinalIgnoreCase) ||
+                order.OrderId.Equals(qrCode, StringComparison.OrdinalIgnoreCase));
         }
     }
 }
